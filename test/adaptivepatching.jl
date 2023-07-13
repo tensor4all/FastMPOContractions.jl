@@ -1,6 +1,7 @@
 using Distributed
 
 using Test
+using Random
 
 # Define the maximum number of worker processes.
 const MAX_WORKERS = 4
@@ -49,6 +50,8 @@ addprocs(max(0, MAX_WORKERS - nworkers()))
 ==#
 
 @testset "2D fermi gk" begin
+    Random.seed!(1234)
+
     ek(kx, ky) = 2 * cos(kx) + 2 * cos(ky) - 1.0
 
     function gk(kx, ky, β)
@@ -60,13 +63,13 @@ addprocs(max(0, MAX_WORKERS - nworkers()))
     grid = DiscretizedGrid{2}(R, (0.0, 0.0), (2π, 2π))
     localdims = fill(4, R)
 
-    β = 20.0
+    β = 30.0
     f = x -> gk(originalcoordinate(grid, QuanticsInd{2}.(x))..., β)
 
     tol = 1e-5
     creator = FMPOC.TCI2PatchCreator(ComplexF64, f, localdims; maxbonddim = 45, rtol = tol, verbosity=1)
 
-    tree = FMPOC.adaptivepatchtci2(ComplexF64, creator)
+    tree = FMPOC.adaptivepatchtci2(creator; verbosity=1)
     @show tree
 
     for _ = 1:100

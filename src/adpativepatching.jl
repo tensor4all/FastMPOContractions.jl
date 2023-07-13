@@ -105,8 +105,13 @@ function _to_tree(
     return AdaptiveTCIInternalNode{C}(children, common_prefix)
 end
 
+"""
+T: Float64, ComplexF64, etc.
+M: TensorCI2, MPS, etc.
+"""
+abstract type AbstractPatchCreator{T,M} end
 
-mutable struct TCI2PatchCreator{T}
+mutable struct TCI2PatchCreator{T} <: AbstractPatchCreator{T,TensorCI2{T}}
     f::Any
     localdims::Vector{Int}
     rtol::Float64
@@ -127,8 +132,7 @@ function TCI2PatchCreator(
     verbosity::Int = 0,
     tcikwargs=Dict(),
 )::TCI2PatchCreator{T} where {T}
-    maxval, firstpivot = _estimate_maxval(f, localdims; ntry=100)
-
+    maxval, _ = _estimate_maxval(f, localdims; ntry=100)
     return TCI2PatchCreator{T}(
         f,
         localdims,
@@ -141,10 +145,34 @@ function TCI2PatchCreator(
     )
 end
 
-mutable struct TCI2PatchCreatorResult{T}
-    spwanresult::Union{Future,TensorCI2{T}}
-    creator::TCI2PatchCreator{T}
+#==
+module ResultStatus
+@enum EnumType begin
+    WAITING = 1
+    FETCHABLE = 2
+    FETCHED = 3
 end
+end
+==#
+
+mutable struct PatchCreatorResult{T,M}
+    data::M
+    isconverged::Bool
+end
+
+#==
+function getstatus(res::PatchCreatorResult{T,M})::ResultStatus.EnumType where {T,M}
+    if res.data isa Future
+        if !isready(res.spwanresult)
+            return ResultStatus.WAITING
+        else
+            return ResultStatus.FETCHABLE
+        end
+    else
+        return ResultStatus.FETCHED
+    end
+end
+==#
 
 function _estimate_maxval(f, localdims; ntry=100)
     pivot = fill(1, length(localdims))
@@ -161,33 +189,55 @@ function _estimate_maxval(f, localdims; ntry=100)
     return maxval, pivot
 end
 
-function createpatch(obj::TCI2PatchCreator{T}, prefix::AbstractVector{Int}) where {T}
+
+function _crossinterpolate2(
+    ::Type{T},
+    f,
+    localdims::Vector{Int},
+    initialpivots::Vector{MultiIndex},
+    tolerance::Float64;
+    maxbonddim::Int=typemax(Int),
+    verbosity::Int=0
+)  where {T}
+    tci, _, _ = TCI.crossinterpolate2(
+        T,
+        f,
+        localdims,
+        initialpivots;
+        tolerance = tolerance,
+        maxbonddim = maxbonddim,
+        verbosity = verbosity,
+        normalizeerror = false
+    )
+
+    return PatchCreatorResult{T,TensorCI2{T}}(tci, TCI.maxbonderror(tci) < tolerance)
+end
+
+function createpatch(obj::TCI2PatchCreator{T}, prefix::AbstractVector{Int})::Future where {T}
     localdims_ = obj.localdims[(length(prefix)+1):end]
     f_ = x -> obj.f(vcat(prefix, x))
     firstpivot = TCI.optfirstpivot(f_, localdims_, fill(1, length(localdims_)))
 
-    result = @spawnat :any TCI.crossinterpolate2(
+    return @spawnat :any _crossinterpolate2(
         T,
         f_,
         localdims_,
-        [firstpivot];
-        tolerance = obj.atol,
+        [firstpivot],
+        obj.atol;
         maxbonddim = obj.maxbonddim,
         verbosity = obj.verbosity,
-        normalizeerror = false,
-        obj.tcikwargs...,
     )
-
-    return TCI2PatchCreatorResult{T}(result, obj)
 end
 
-_isready(obj::TCI2PatchCreatorResult)::Bool = isready(obj.spwanresult)
 
-function fetch!(res::TCI2PatchCreatorResult{T})::Nothing where {T}
-    _isready(res) || error("Not ready yet")
+#==
+function fetch!(creator::AbstractPatchCreator{T,M}, res::PatchCreatorResult{T,M})::Nothing where {T,M}
+    getstatus(res) == ResultStatus.FETCHABLE || error("Invalid state of the result")
 
     if res.spwanresult isa Future
         res.spwanresult, _, _ = fetch(res.spwanresult)
+        res.isconverged = TCI.maxbonderror(res.spwanresult) < creator.atol
+        res.status = ResultStatus.FETCHED
     elseif res.spwanresult isa RemoteException
         error("An exception occured: $(res)")
     else
@@ -196,157 +246,31 @@ function fetch!(res::TCI2PatchCreatorResult{T})::Nothing where {T}
 
     return nothing
 end
-
+==#
+#==
 function isconverged(res::TCI2PatchCreatorResult{T})::Bool where {T}
     res.spwanresult isa TensorCI2{T} || error("Not ready yet")
 
     tci = res.spwanresult 
     return TCI.maxbonderror(tci) < res.creator.atol
 end
-
-
-"""
-Construct QTTs using adaptive partitioning of the domain.
-
-TODO
-
-  - Allow arbitrary order of partitioning
-"""
-function adaptivepatchtci(
-    ::Type{T},
-    f,
-    localdims::AbstractVector{Int};
-    tolerance::Float64 = 1e-8,
-    maxbonddim::Int = 100,
-    firstpivot = ones(Int, length(localdims)),
-    sleep_time::Float64 = 1e-6,
-    verbosity::Int = 0,
-    maxnleaves = 100,
-    kwargs...,
-)::Union{AdaptiveTCILeaf{TensorCI2{T}},AdaptiveTCIInternalNode{TensorCI2{T}}} where {T}
-    R = length(localdims)
-    leaves = Dict{Vector{Int},Union{TensorCI2{T},Future}}()
-
-    # Add root node
-    firstpivot = TCI.optfirstpivot(f, localdims, firstpivot)
-    tci, ranks, errors = TCI.crossinterpolate2(
-        T,
-        f,
-        localdims,
-        [firstpivot];
-        tolerance = tolerance,
-        maxbonddim = maxbonddim,
-        verbosity = verbosity,
-        kwargs...,
-    )
-    leaves[[]] = tci
-    maxsamplevalue = tci.maxsamplevalue
-
-    while true
-        sleep(sleep_time) # Not to run the loop too quickly
-
-        done = true
-        for (prefix, tci) in leaves
-            if tci isa Future
-                done = false
-                if isready(tci)
-                    res = try
-                        fetch(tci)
-                    catch ex
-                        error("An exception occured: $ex")
-                    end
-                    if res isa RemoteException
-                        error("An exception occured: $(res)")
-                    end
-                    tci = leaves[prefix] = res[1]
-                    if verbosity > 0
-                        println(
-                            "Fetched, bond dimension = $(maximum(TCI.linkdims(leaves[prefix]))) $(TCI.maxbonderror(tci)) $(tci.maxsamplevalue) for $(prefix)",
-                        )
-                    end
-                    maxsamplevalue = max(maxsamplevalue, leaves[prefix].maxsamplevalue)
-                end
-            elseif tci isa TensorCI2 &&
-                   (TCI.maxbonderror(tci) > tolerance * maxsamplevalue) &&
-                   length(leaves) < maxnleaves
-                done = false
-                delete!(leaves, prefix)
-                for ic = 1:localdims[length(prefix)+1]
-                    prefix_ = vcat(prefix, ic)
-                    localdims_ = localdims[(length(prefix_)+1):end]
-                    f_ = x -> f(vcat(prefix_, x))
-
-                    firstpivot_ = ones(Int, R - length(prefix_))
-                    maxval = abs(f_(firstpivot_))
-
-                    for r = 1:10
-                        firstpivot_rnd =
-                            [rand(1:localdims_[r]) for r in eachindex(localdims_)]
-                        firstpivot_rnd = TCI.optfirstpivot(f_, localdims_, firstpivot_rnd)
-                        if abs(f_(firstpivot_rnd)) > maxval
-                            firstpivot_ = firstpivot_rnd
-                            maxval = abs(f_(firstpivot_))
-                        end
-                    end
-
-                    if verbosity > 0
-                        println("Interpolating $(prefix_) ...")
-                    end
-                    leaves[prefix_] = @spawnat :any TCI.crossinterpolate2(
-                        T,
-                        f_,
-                        localdims_,
-                        [firstpivot_];
-                        tolerance = tolerance * maxsamplevalue,
-                        maxbonddim = maxbonddim,
-                        verbosity = verbosity,
-                        normalizeerror = false,
-                        kwargs...,
-                    )
-                end
-            end
-        end
-        if done
-            break
-        end
-    end
-
-    leaves_done = Dict{Vector{Int},TensorCI2{T}}()
-    for (k, v) in leaves
-        if v isa Future
-            error("Something got wrong. Not all leaves are fetched")
-        end
-        if TCI.maxbonderror(v) > tolerance * maxsamplevalue
-            error(
-                "TCI for k= $(k) has bond error $(TCI.maxbonderror(v)) larger than $(tolerance) * $(maxsamplevalue) = $(tolerance*maxsamplevalue)!",
-            )
-        end
-        leaves_done[k] = v
-    end
-
-    return _to_tree(leaves_done)
-end
+==#
 
 
 function adaptivepatchtci2(
-    ::Type{T},
-    creator;
+    creator::AbstractPatchCreator{T,M};
     sleep_time::Float64 = 1e-6,
     maxnleaves = 100,
     verbosity = 0
-)::Union{AdaptiveTCILeaf{TensorCI2{T}},AdaptiveTCIInternalNode{TensorCI2{T}}} where {T}
-    R = length(creator.localdims)
-    leaves = Dict{Vector{Int},Union{TensorCI2{T},TCI2PatchCreatorResult{T}}}()
-    isconverged_leaves = Dict{Vector{Int},Bool}()
+)::Union{AdaptiveTCILeaf{M},AdaptiveTCIInternalNode{M}} where {T,M}
+    leaves = Dict{Vector{Int},Union{Future,PatchCreatorResult{T,M}}}()
 
     # Add root
     root = createpatch(creator, Int[])
-    while !_isready(root)
+    while !isready(root)
         sleep(sleep_time) # Not to run the loop too quickly
     end
-    fetch!(root)
-    leaves[[]] = root.spwanresult
-    isconverged_leaves[[]] = isconverged(root)
+    leaves[[]] = fetch(root)
 
     while true
         sleep(sleep_time) # Not to run the loop too quickly
@@ -355,19 +279,14 @@ function adaptivepatchtci2(
         for (prefix, leaf) in leaves
 
             # Fetch leaf if ready
-            if leaf isa TCI2PatchCreatorResult{T}
+            if leaf isa Future
                 done = false
-                if _isready(leaf)
-                    fetch!(leaf)
-                    leaves[prefix] = leaf.spwanresult
-                    isconverged_leaves[prefix] = isconverged(leaf)
+                if isready(leaf)
+                    leaves[prefix] = fetch(leaf)
                 end
-            end
-
-            if leaf isa TensorCI2 && !isconverged_leaves[prefix] && length(leaves) < maxnleaves
+            elseif !(leaf isa Future) && !leaf.isconverged && length(leaves) < maxnleaves
                 done = false
                 delete!(leaves, prefix)
-                delete!(isconverged_leaves, prefix)
 
                 for ic = 1:creator.localdims[length(prefix)+1]
                     prefix_ = vcat(prefix, ic)
@@ -383,17 +302,12 @@ function adaptivepatchtci2(
         end
     end
 
-    leaves_done = Dict{Vector{Int},TensorCI2{T}}()
+    leaves_done = Dict{Vector{Int},M}()
     for (k, v) in leaves
-        if !(v isa TensorCI2)
-            error("Something got wrong. Not all leaves are fetched")
+        if v isa Future || !v.isconverged
+            error("Something got wrong. All leaves must be fetched and converged!")
         end
-        if TCI.maxbonderror(v) > creator.atol
-            error(
-                "TCI for k= $(k) has bond error $(TCI.maxbonderror(v)) larger than $(creator.rtol) * $(creator.maxval) = $(creator.atol)!",
-            )
-        end
-        leaves_done[k] = v
+        leaves_done[k] = v.data
     end
 
     return _to_tree(leaves_done)
