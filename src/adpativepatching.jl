@@ -121,7 +121,7 @@ function adaptivepatches(
     creator::AbstractPatchCreator{T,M};
     sleep_time::Float64 = 1e-6,
     maxnleaves = 100,
-    verbosity = 0
+    verbosity = 0,
 )::Union{AdaptiveLeaf{M},AdaptiveInternalNode{M}} where {T,M}
     leaves = Dict{Vector{Int},Union{Future,PatchCreatorResult{T,M}}}()
 
@@ -165,7 +165,7 @@ function adaptivepatches(
     leaves_done = Dict{Vector{Int},M}()
     for (k, v) in leaves
         #if v isa Future || !v.isconverged
-            #error("Something got wrong. All leaves must be fetched and converged! $(v) $(v.isconverged)")
+        #error("Something got wrong. All leaves must be fetched and converged! $(v) $(v.isconverged)")
         #end
         leaves_done[k] = v.data
     end
@@ -175,9 +175,9 @@ function adaptivepatches(
 end
 
 
-#================================================================================
-TCI2 Interpolation of a function
-================================================================================#
+#======================================================================
+   TCI2 Interpolation of a function
+======================================================================#
 _evaluate(obj::TensorCI2, idx) = TCI.evaluate(obj, idx)
 
 mutable struct TCI2PatchCreator{T} <: AbstractPatchCreator{T,TensorCI2{T}}
@@ -199,10 +199,10 @@ function TCI2PatchCreator(
     rtol::Float64 = 1e-8,
     maxbonddim::Int = 100,
     verbosity::Int = 0,
-    tcikwargs=Dict(),
-    ntry=100
+    tcikwargs = Dict(),
+    ntry = 100,
 )::TCI2PatchCreator{T} where {T}
-    maxval, _ = _estimate_maxval(f, localdims; ntry=ntry)
+    maxval, _ = _estimate_maxval(f, localdims; ntry = ntry)
     return TCI2PatchCreator{T}(
         f,
         localdims,
@@ -211,7 +211,7 @@ function TCI2PatchCreator(
         verbosity,
         tcikwargs,
         maxval,
-        rtol * maxval
+        rtol * maxval,
     )
 end
 
@@ -222,9 +222,9 @@ function _crossinterpolate2(
     localdims::Vector{Int},
     initialpivots::Vector{MultiIndex},
     tolerance::Float64;
-    maxbonddim::Int=typemax(Int),
-    verbosity::Int=0
-)  where {T}
+    maxbonddim::Int = typemax(Int),
+    verbosity::Int = 0,
+) where {T}
     tci, others = TCI.crossinterpolate2(
         T,
         f,
@@ -233,12 +233,12 @@ function _crossinterpolate2(
         tolerance = 1e-1 * tolerance,
         maxbonddim = maxbonddim,
         verbosity = verbosity,
-        normalizeerror = false
+        normalizeerror = false,
     )
 
     err(x) = abs(TCI.evaluate(tci, x) - f(x))
     abserror = 0.0
-    for _ in 1:10
+    for _ = 1:10
         p = TCI.optfirstpivot(err, localdims, [rand(1:d) for d in localdims])
         newerr = abs(err(p))
         if abserror < newerr
@@ -248,11 +248,16 @@ function _crossinterpolate2(
 
     true_error = max(TCI.maxbonderror(tci), abserror)
 
-    #@show maximum(TCI.linkdims(tci)), maxbonddim
-    return PatchCreatorResult{T,TensorCI2{T}}(tci, true_error < tolerance && maximum(TCI.linkdims(tci)) <= maxbonddim)
+    return PatchCreatorResult{T,TensorCI2{T}}(
+        tci,
+        true_error < tolerance && maximum(TCI.linkdims(tci)) <= maxbonddim,
+    )
 end
 
-function createpatch(obj::TCI2PatchCreator{T}, prefix::AbstractVector{Int})::Future where {T}
+function createpatch(
+    obj::TCI2PatchCreator{T},
+    prefix::AbstractVector{Int},
+)::Future where {T}
     localdims_ = obj.localdims[(length(prefix)+1):end]
     f_ = x -> obj.f(vcat(prefix, x))
     firstpivot = TCI.optfirstpivot(f_, localdims_, fill(1, length(localdims_)))
@@ -269,10 +274,10 @@ function createpatch(obj::TCI2PatchCreator{T}, prefix::AbstractVector{Int})::Fut
 end
 
 
-function _estimate_maxval(f, localdims; ntry=100)
+function _estimate_maxval(f, localdims; ntry = 100)
     pivot = fill(1, length(localdims))
     maxval::Float64 = abs(f(pivot))
-    for i in 1:ntry
+    for i = 1:ntry
         pivot_ = [rand(1:localdims[i]) for i in eachindex(localdims)]
         pivot_ = TCI.optfirstpivot(f, localdims, pivot_)
         maxval_ = abs(f(pivot_))
