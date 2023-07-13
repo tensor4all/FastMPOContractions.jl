@@ -13,6 +13,8 @@ function Base.show(io::IO, obj::AdaptiveTCILeaf{C}) where {C}
     )
 end
 
+_linkdims(tci::TensorCI2{T}) where {T} = TCI.linkdims(tci)
+
 struct AdaptiveTCIInternalNode{C} <: AbstractAdaptiveTCINode{C}
     children::Dict{Int,AbstractAdaptiveTCINode{C}}
     prefix::Vector{Int}

@@ -37,10 +37,10 @@ addprocs(max(0, MAX_WORKERS - nworkers()))
         absmaxval = abs(f(firstpivot))
         tol = 1e-5
         tree =
-            FMPOC.adaptivepatchtci(ComplexF64, f, localdims; maxiter = 70, tolerance = tol)
+            FMPOC.adaptivepatchtci(ComplexF64, f, localdims; maxbonddim = 45, tolerance = tol)
         #@show tree
 
-        for _ = 1:10
+        for _ = 1:100
             pivot = rand(1:4, R)
             isapprox(FMPOC.evaluate(tree, pivot), f(pivot); atol = tol * absmaxval)
         end
