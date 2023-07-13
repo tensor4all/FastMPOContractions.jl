@@ -12,8 +12,8 @@ end
 function Base.show(io::IO, obj::AdaptiveTCILeaf{T}) where {T}
     prefix = convert.(Int, obj.prefix)
     println(io,
-            "  "^length(prefix) *
-            "Leaf $(prefix): rank=$(maximum(TCI.linkdims(obj.tci)))")
+        "  "^length(prefix) *
+        "Leaf $(prefix): rank=$(maximum(TCI.linkdims(obj.tci)))")
 end
 
 struct AdaptiveTCIInternalNode{T<:Number} <: AbstractAdaptiveTCINode
@@ -21,7 +21,7 @@ struct AdaptiveTCIInternalNode{T<:Number} <: AbstractAdaptiveTCINode
     prefix::Vector{Int}
 
     function AdaptiveTCIInternalNode{T}(children::Dict{Int,AbstractAdaptiveTCINode},
-                                        prefix::Vector{Int}) where {T}
+        prefix::Vector{Int}) where {T}
         return new{T}(children, prefix)
     end
 end
@@ -30,12 +30,11 @@ function Base.sum(tci::AdaptiveTCIInternalNode{T})::T where {T}
     return sum((sum(child) for child in values(tci.children)))
 end
 
-
 """
 prefix is the common prefix of all children
 """
 function AdaptiveTCIInternalNode{T}(children::Vector{AbstractAdaptiveTCINode},
-                                    prefix::Vector{Int}) where {T}
+    prefix::Vector{Int}) where {T}
     d = Dict{Int,AbstractAdaptiveTCINode}()
     for child in children
         d[child.prefix[end]] = child
@@ -45,8 +44,8 @@ end
 
 function Base.show(io::IO, obj::AdaptiveTCIInternalNode{T}) where {T}
     println(io,
-            "  "^length(obj.prefix) *
-            "InternalNode $(obj.prefix) with $(length(obj.children)) children")
+        "  "^length(obj.prefix) *
+        "InternalNode $(obj.prefix) with $(length(obj.children)) children")
     for (k, v) in obj.children
         Base.show(io, v)
     end
@@ -68,7 +67,7 @@ end
 Convert a dictionary of patches to a tree
 """
 function _to_tree(patches::Dict{Vector{Int},TensorCI2{T}};
-                  nprefix=0)::AbstractAdaptiveTCINode where {T}
+    nprefix=0)::AbstractAdaptiveTCINode where {T}
     length(unique(k[1:nprefix] for (k, v) in patches)) == 1 ||
         error("Inconsistent prefixes")
 
@@ -109,22 +108,22 @@ TODO
   - Allow arbitrary order of partitioning
 """
 function adaptivetci(::Type{T}, f, localdims::AbstractVector{Int};
-                     tolerance::Float64=1e-8, maxbonddim::Int=100,
-                     firstpivot=ones(Int, length(localdims)),
-                     sleep_time::Float64=1e-6, verbosity::Int=0, maxnleaves=100,
-                     kwargs...)::Union{AdaptiveTCILeaf{T},AdaptiveTCIInternalNode{T}
-                                       } where {T}
+    tolerance::Float64=1e-8, maxbonddim::Int=100,
+    firstpivot=ones(Int, length(localdims)),
+    sleep_time::Float64=1e-6, verbosity::Int=0, maxnleaves=100,
+    kwargs...)::Union{AdaptiveTCILeaf{T},AdaptiveTCIInternalNode{T}
+} where {T}
     R = length(localdims)
     leaves = Dict{Vector{Int},Union{TensorCI2{T},Future}}()
 
     # Add root node
     firstpivot = TCI.optfirstpivot(f, localdims, firstpivot)
     tci, ranks, errors = TCI.crossinterpolate2(T, f, localdims,
-                                               [firstpivot];
-                                               tolerance=tolerance,
-                                               maxbonddim=maxbonddim,
-                                               verbosity=verbosity,
-                                               kwargs...)
+        [firstpivot];
+        tolerance=tolerance,
+        maxbonddim=maxbonddim,
+        verbosity=verbosity,
+        kwargs...)
     leaves[[]] = tci
     maxsamplevalue = tci.maxsamplevalue
 
@@ -187,15 +186,15 @@ function adaptivetci(::Type{T}, f, localdims::AbstractVector{Int};
                         println("Interpolating $(prefix_) ...")
                     end
                     leaves[prefix_] = @spawnat :any TCI.crossinterpolate2(T,
-                                                                          f_,
-                                                                          localdims_,
-                                                                          [firstpivot_];
-                                                                          tolerance=tolerance *
-                                                                                    maxsamplevalue,
-                                                                          maxbonddim=maxbonddim,
-                                                                          verbosity=verbosity,
-                                                                          normalizeerror=false,
-                                                                          kwargs...)
+                        f_,
+                        localdims_,
+                        [firstpivot_];
+                        tolerance=tolerance *
+                                  maxsamplevalue,
+                        maxbonddim=maxbonddim,
+                        verbosity=verbosity,
+                        normalizeerror=false,
+                        kwargs...)
                 end
             end
         end
