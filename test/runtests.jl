@@ -1,6 +1,6 @@
 using FastMPOContractions
 using Test
 
-@testset "FastMPOContractions.jl" begin
-    # Write your tests here.
-end
+
+include("_quanticsrepr.jl")
+include("adaptivepatching.jl")
