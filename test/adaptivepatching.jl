@@ -20,7 +20,15 @@ addprocs(max(0, MAX_WORKERS - nworkers()))
 
 @testset "adaptivepatching.jl" begin
 
-    @testset "2D fermi gk" begin
+    @testset "PatchOrdering" begin
+        po = FMPOC.PatchOrdering([4, 3, 2, 1])
+        @test FMPOC.maskactiveindices(po, 2) == [1, 1, 0, 0]
+        @test FMPOC.maskactiveindices(po, 1) == [1, 1, 1, 0]
+        @test FMPOC.fullindices(po, [1], [2, 3, 4]) == [2, 3, 4, 1]
+        @test FMPOC.fullindices(po, [1, 2], [3, 4]) == [3, 4, 2, 1]
+    end
+
+    @testset "2D fermi gk" for _flipordering in [false, true]
         Random.seed!(1234)
 
         ek(kx, ky) = 2 * cos(kx) + 2 * cos(ky) - 1.0
@@ -35,9 +43,13 @@ addprocs(max(0, MAX_WORKERS - nworkers()))
         localdims = fill(4, R)
 
         β = 20.0
-        f = x -> gk(originalcoordinate(grid, QuanticsInd{2}.(x))..., β)
+        flipper = _flipordering ? x -> reverse(x) : x -> x
+        f = x -> gk(originalcoordinate(grid, QuanticsInd{2}.(flipper(x)))..., β)
 
         tol = 1e-5
+
+        pordering = FMPOC.PatchOrdering(flipper(collect(1:R)))
+
         creator = FMPOC.TCI2PatchCreator(
             ComplexF64,
             f,
@@ -47,9 +59,8 @@ addprocs(max(0, MAX_WORKERS - nworkers()))
             verbosity = 1,
             ntry = 10,
         )
-        #@show creator.maxval
 
-        tree = FMPOC.adaptivepatches(creator; verbosity = 1, maxnleaves = 1000)
+        tree = FMPOC.adaptivepatches(creator, pordering; verbosity = 1, maxnleaves = 1000)
         @show tree
 
         for _ = 1:100
