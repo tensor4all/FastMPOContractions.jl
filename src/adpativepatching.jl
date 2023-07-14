@@ -1,3 +1,6 @@
+"""
+Specify the ordering of patching
+"""
 struct PatchOrdering
     ordering::Vector{Int}
     function PatchOrdering(ordering::Vector{Int})
@@ -178,7 +181,12 @@ function adaptivepatches(
             if leaf isa Future
                 done = false
                 if isready(leaf)
+                    t1 = time_ns()
                     leaves[prefix] = fetch(leaf)
+                    t2 = time_ns()
+                    if verbosity > 0
+                        println("Recieved a patch for $(prefix): $(1e-9*(t2-t1)) seconds")
+                    end
                 end
             elseif !(leaf isa Future) && !leaf.isconverged && length(leaves) < maxnleaves
                 done = false
