@@ -24,8 +24,8 @@ addprocs(max(0, MAX_WORKERS - nworkers()))
         po = FMPOC.PatchOrdering([4, 3, 2, 1])
         @test FMPOC.maskactiveindices(po, 2) == [1, 1, 0, 0]
         @test FMPOC.maskactiveindices(po, 1) == [1, 1, 1, 0]
-        @test FMPOC.fullindices(po, [1], [2, 3, 4]) == [2, 3, 4, 1]
-        @test FMPOC.fullindices(po, [1, 2], [3, 4]) == [3, 4, 2, 1]
+        @test FMPOC.fullindices(po, [[1]], [[2], [3], [4]]) == [[2], [3], [4], [1]]
+        @test FMPOC.fullindices(po, [[1], [2]], [[3], [4]]) == [[3], [4], [2], [1]]
     end
 
     @testset "2D fermi gk" for _flipordering in [false, true]
@@ -63,11 +63,13 @@ addprocs(max(0, MAX_WORKERS - nworkers()))
         tree = FMPOC.adaptivepatches(creator, pordering; verbosity = 1, maxnleaves = 1000)
         @show tree
 
+        _evaluate(x, idx) = FMPOC.evaluate(x, [[i] for i in idx])
+
         for _ = 1:100
             pivot = rand(1:4, R)
-            error_func = x -> abs(f(x) - FMPOC.evaluate(tree, x))
+            error_func = x -> abs(f(x) - _evaluate(tree, x))
             pivot = TCI.optfirstpivot(error_func, localdims, pivot)
-            @test isapprox(FMPOC.evaluate(tree, pivot), f(pivot); atol = 10 * creator.atol)
+            @test isapprox(_evaluate(tree, pivot), f(pivot); atol = 10 * creator.atol)
         end
 
     end

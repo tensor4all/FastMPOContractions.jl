@@ -18,9 +18,9 @@ function maskactiveindices(po::PatchOrdering, nprefix::Int)
     return mask
 end
 
-function fullindices(po::PatchOrdering, prefix::Vector{Int}, restindices::Vector{Int})
+function fullindices(po::PatchOrdering, prefix::Vector{Vector{Int}}, restindices::Vector{Vector{Int}})
     length(prefix) + length(restindices) == length(po.ordering) || error("Inconsistent length")
-    res = zeros(Int, length(prefix) + length(restindices))
+    res = [Int[] for _ in 1:(length(prefix) + length(restindices))]
 
     res[po.ordering[1:length(prefix)]] .= prefix
     res[maskactiveindices(po, length(prefix))] .= restindices
@@ -31,12 +31,12 @@ abstract type AbstractAdaptiveTCINode{C} end
 
 struct AdaptiveLeaf{C} <: AbstractAdaptiveTCINode{C}
     data::C
-    prefix::Vector{Int}
+    prefix::Vector{Vector{Int}}
     pordering::PatchOrdering
 end
 
 function Base.show(io::IO, obj::AdaptiveLeaf{C}) where {C}
-    prefix = convert.(Int, obj.prefix)
+    prefix = prod(["$x" for x in obj.prefix])
     return println(
         io,
         "  "^length(prefix) * "Leaf $(prefix): rank=$(maximum(_linkdims(obj.data)))",
@@ -46,13 +46,13 @@ end
 _linkdims(tci::TensorCI2{T}) where {T} = TCI.linkdims(tci)
 
 struct AdaptiveInternalNode{C} <: AbstractAdaptiveTCINode{C}
-    children::Dict{Int,AbstractAdaptiveTCINode{C}}
-    prefix::Vector{Int}
+    children::Dict{Vector{Int},AbstractAdaptiveTCINode{C}}
+    prefix::Vector{Vector{Int}}
     pordering::PatchOrdering
 
     function AdaptiveInternalNode{C}(
-        children::Dict{Int,AbstractAdaptiveTCINode{C}},
-        prefix::Vector{Int},
+        children::Dict{Vector{Int},AbstractAdaptiveTCINode{C}},
+        prefix::Vector{Vector{Int}},
         pordering::PatchOrdering
     ) where {C}
         return new{C}(children, prefix, pordering)
@@ -64,10 +64,10 @@ prefix is the common prefix of all children
 """
 function AdaptiveInternalNode{C}(
     children::Vector{AbstractAdaptiveTCINode{C}},
-    prefix::Vector{Int},
+    prefix::Vector{Vector{Int}},
     pordering::PatchOrdering
 ) where {C}
-    d = Dict{Int,AbstractAdaptiveTCINode{C}}()
+    d = Dict{Vector{Int},AbstractAdaptiveTCINode{C}}()
     for child in children
         d[child.prefix[end]] = child
     end
@@ -88,16 +88,16 @@ end
 """
 Evaluate the tree at given idx
 """
-function evaluate(obj::AdaptiveInternalNode{C}, idx::AbstractVector{Int}) where {C}
-    child_key::Int = idx[obj.pordering.ordering[length(obj.prefix)+1]]
+function evaluate(obj::AdaptiveInternalNode{C}, idx::AbstractVector{T}) where {C, T<:AbstractArray{Int}}
+    child_key = idx[obj.pordering.ordering[length(obj.prefix)+1]]
     return evaluate(obj.children[child_key], idx)
 end
 
-function _onlyactiveindices(obj::AbstractAdaptiveTCINode{C}, idx::AbstractVector{Int}) where {C}
+function _onlyactiveindices(obj::AbstractAdaptiveTCINode{C}, idx::AbstractVector{T}) where {C, T<:AbstractArray{Int}}
     return idx[maskactiveindices(obj.pordering, length(obj.prefix))]
 end
 
-function evaluate(obj::AdaptiveLeaf{C}, idx::AbstractVector{Int}) where {C}
+function evaluate(obj::AdaptiveLeaf{C}, idx::AbstractVector{T}) where {C, T<:AbstractArray{Int}}
     return _evaluate(obj.data, _onlyactiveindices(obj, idx))
 end
 
@@ -106,7 +106,7 @@ end
 Convert a dictionary of patches to a tree
 """
 function _to_tree(
-    patches::Dict{Vector{Int},C},
+    patches::Dict{Vector{Vector{Int}},C},
     pordering::PatchOrdering;
     nprefix = 0,
 )::AbstractAdaptiveTCINode{C} where {C}
@@ -120,7 +120,7 @@ function _to_tree(
         return AdaptiveLeaf{C}(first(patches)[2], common_prefix, pordering)
     end
 
-    subgroups = Dict{Int,Dict{Vector{Int},C}}()
+    subgroups = Dict{Vector{Int},Dict{Vector{Vector{Int}},C}}()
 
     # Look at the first index after nprefix skips
     # and group the patches by that index
@@ -129,7 +129,7 @@ function _to_tree(
         if idx in keys(subgroups)
             subgroups[idx][k] = v
         else
-            subgroups[idx] = Dict{Vector{Int},C}(k => v)
+            subgroups[idx] = Dict{Vector{Vector{Int}},C}(k => v)
         end
     end
 
@@ -165,7 +165,7 @@ function adaptivepatches(
     leaves = Dict{Vector{Int},Union{Future,PatchCreatorResult{T,M}}}()
 
     # Add root
-    root = createpatch(creator, pordering, Int[])
+    root = createpatch(creator, pordering, Vector{Int}[])
     while !isready(root)
         sleep(sleep_time) # Not to run the loop too quickly
     end
@@ -197,7 +197,7 @@ function adaptivepatches(
                     if verbosity > 0
                         println("Creating a patch for $(prefix_) ...")
                     end
-                    leaves[prefix_] = createpatch(creator, pordering, prefix_)
+                    leaves[prefix_] = createpatch(creator, pordering, [[x] for x in prefix_])
                 end
             end
         end
@@ -206,9 +206,9 @@ function adaptivepatches(
         end
     end
 
-    leaves_done = Dict{Vector{Int},M}()
+    leaves_done = Dict{Vector{Vector{Int}},M}()
     for (k, v) in leaves
-        leaves_done[k] = v.data
+        leaves_done[[[x] for x in k]] = v.data
     end
 
     return _to_tree(leaves_done, pordering)
@@ -218,7 +218,7 @@ end
 #======================================================================
    TCI2 Interpolation of a function
 ======================================================================#
-_evaluate(obj::TensorCI2, idx) = TCI.evaluate(obj, idx)
+_evaluate(obj::TensorCI2, idx::Vector{Vector{Int}}) = TCI.evaluate(obj, map(first, idx))
 
 mutable struct TCI2PatchCreator{T} <: AbstractPatchCreator{T,TensorCI2{T}}
     f::Any
@@ -297,11 +297,17 @@ end
 function createpatch(
     obj::TCI2PatchCreator{T},
     pordering::PatchOrdering,
-    prefix::AbstractVector{Int},
+    prefix::Vector{Vector{Int}},
 )::Future where {T}
     mask = maskactiveindices(pordering, length(prefix))
     localdims_ = obj.localdims[mask]
-    f_ = x -> obj.f(fullindices(pordering, prefix, x))
+    #f_ = x -> obj.f(fullindices(pordering, prefix, x))
+
+    function f_(x::Vector{Int})::T
+        idx = fullindices(pordering, prefix, [[x_] for x_ in x])
+        return obj.f(map(first, idx))
+    end
+
     firstpivot = TCI.optfirstpivot(f_, localdims_, fill(1, length(localdims_)))
 
     return @spawnat :any _crossinterpolate2(
