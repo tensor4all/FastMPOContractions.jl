@@ -9,5 +9,7 @@ using Distributed
 # Write your package code here.
 
 include("adpativepatching.jl")
+include("mpotree.jl")
+include("contraction.jl")
 
 end
