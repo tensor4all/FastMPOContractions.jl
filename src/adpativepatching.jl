@@ -44,6 +44,7 @@ function Base.show(io::IO, obj::AdaptiveLeaf{C}) where {C}
 end
 
 _linkdims(tci::TensorCI2{T}) where {T} = TCI.linkdims(tci)
+_linkdims(tt::TensorTrain{T,N}) where {T,N} = [last(size(tt.T[n])) for n in 1:(length(tt.T)-1)]
 
 struct AdaptiveInternalNode{C} <: AbstractAdaptiveTCINode{C}
     children::Dict{Int,AbstractAdaptiveTCINode{C}}
@@ -218,9 +219,11 @@ end
 #======================================================================
    TCI2 Interpolation of a function
 ======================================================================#
-_evaluate(obj::TensorCI2, idx) = TCI.evaluate(obj, idx)
+TensorTrainState{T} = TensorTrain{T,3} where {T}
 
-mutable struct TCI2PatchCreator{T} <: AbstractPatchCreator{T,TensorCI2{T}}
+_evaluate(obj::TensorTrainState{T}, idx::AbstractVector{Int}) where {T} = TCI.evaluate(obj, idx)
+
+mutable struct TCI2PatchCreator{T} <: AbstractPatchCreator{T,TensorTrainState{T}}
     f::Any
     localdims::Vector{Int}
     rtol::Float64
@@ -288,8 +291,8 @@ function _crossinterpolate2(
 
     true_error = max(TCI.maxbonderror(tci), abserror)
 
-    return PatchCreatorResult{T,TensorCI2{T}}(
-        tci,
+    return PatchCreatorResult{T,TensorTrain{T,3}}(
+        TensorTrain(tci),
         true_error < tolerance && maximum(TCI.linkdims(tci)) <= maxbonddim,
     )
 end
