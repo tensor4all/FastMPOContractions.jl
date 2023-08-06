@@ -11,8 +11,8 @@ function _iscompatible(p1::Vector{Int}, p2::Vector{Int})::Bool
     return true
 end
 
-function contract(A::MPOTree, B::MPOTree, leftprefix::Vector{Int}, rightprefix::Vector{Int}; maxdim=100)::MPO
-    leftmpo = MPO[]
+function contract(A::MPOTree, B::MPOTree, leftprefix::Vector{Int}, rightprefix::Vector{Int}; maxdim=100)
+    leftmpo = TTO[]
     leftinner_prefix = Vector{Int}[]
     for n in eachindex(A.mpos)
         if _iscompatible(leftprefix, A.leftprefix[n])
@@ -21,7 +21,7 @@ function contract(A::MPOTree, B::MPOTree, leftprefix::Vector{Int}, rightprefix::
         end
     end
 
-    rightmpo = MPO[]
+    rightmpo = TTO[]
     rightinner_prefix = Vector{Int}[]
     for n in eachindex(B.mpos)
         if _iscompatible(rightprefix, B.rightprefix[n])
@@ -30,7 +30,7 @@ function contract(A::MPOTree, B::MPOTree, leftprefix::Vector{Int}, rightprefix::
         end
     end
 
-    contraction_pairs = Tuple{MPO,MPO}[]
+    contraction_pairs = Tuple{TTO,TTO}[]
     prefix_contracted = Tuple{Int,Int}[]
     for n in eachindex(leftmpo), m in eachindex(rightmpo)
         if _iscompatible(leftinner_prefix[n], rightinner_prefix[m])
@@ -39,7 +39,7 @@ function contract(A::MPOTree, B::MPOTree, leftprefix::Vector{Int}, rightprefix::
         end
     end
 
-    contracted_mpo = MPO[]
+    contracted_mpo = TTO[]
     for n in eachindex(contraction_pairs)
         res = contract(contraction_pairs[n][1], contraction_pairs[n][2]; maxdim=maxdim)
         push!(contracted_mpo, res)
