@@ -7,7 +7,7 @@ using StaticArrays
 using Distributed
 
 using ITensors
-import ITensors: AbstractMPS, sim!, setleftlim!, setrightlim!
+import ITensors: AbstractMPS, sim!, setleftlim!, setrightlim!, check_hascommoninds
 
 using ITensorTDVP
 
@@ -18,6 +18,7 @@ const TTO{T} = TensorTrain{T,4}
 include("adpativepatching.jl")
 include("densitymatrix.jl")
 include("fitalgorithm.jl")
+include("util.jl")
 #include("mpotree.jl")
 #include("contraction.jl")
 
