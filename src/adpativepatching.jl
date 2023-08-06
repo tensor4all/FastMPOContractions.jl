@@ -18,9 +18,14 @@ function maskactiveindices(po::PatchOrdering, nprefix::Int)
     return mask
 end
 
-function fullindices(po::PatchOrdering, prefix::Vector{Vector{Int}}, restindices::Vector{Vector{Int}})
-    length(prefix) + length(restindices) == length(po.ordering) || error("Inconsistent length")
-    res = [Int[] for _ in 1:(length(prefix) + length(restindices))]
+function fullindices(
+    po::PatchOrdering,
+    prefix::Vector{Vector{Int}},
+    restindices::Vector{Vector{Int}},
+)
+    length(prefix) + length(restindices) == length(po.ordering) ||
+        error("Inconsistent length")
+    res = [Int[] for _ = 1:(length(prefix)+length(restindices))]
 
     res[po.ordering[1:length(prefix)]] .= prefix
     res[maskactiveindices(po, length(prefix))] .= restindices
@@ -44,7 +49,8 @@ function Base.show(io::IO, obj::AdaptiveLeaf{C}) where {C}
 end
 
 _linkdims(tci::TensorCI2{T}) where {T} = TCI.linkdims(tci)
-_linkdims(tt::TensorTrain{T,N}) where {T,N} = [last(size(tt.T[n])) for n in 1:(length(tt.T)-1)]
+_linkdims(tt::TensorTrain{T,N}) where {T,N} =
+    [last(size(tt.T[n])) for n = 1:(length(tt.T)-1)]
 
 struct AdaptiveInternalNode{C} <: AbstractAdaptiveTCINode{C}
     children::Dict{Vector{Int},AbstractAdaptiveTCINode{C}}
@@ -54,7 +60,7 @@ struct AdaptiveInternalNode{C} <: AbstractAdaptiveTCINode{C}
     function AdaptiveInternalNode{C}(
         children::Dict{Vector{Int},AbstractAdaptiveTCINode{C}},
         prefix::Vector{Vector{Int}},
-        pordering::PatchOrdering
+        pordering::PatchOrdering,
     ) where {C}
         return new{C}(children, prefix, pordering)
     end
@@ -66,7 +72,7 @@ prefix is the common prefix of all children
 function AdaptiveInternalNode{C}(
     children::Vector{AbstractAdaptiveTCINode{C}},
     prefix::Vector{Vector{Int}},
-    pordering::PatchOrdering
+    pordering::PatchOrdering,
 ) where {C}
     d = Dict{Vector{Int},AbstractAdaptiveTCINode{C}}()
     for child in children
@@ -89,16 +95,25 @@ end
 """
 Evaluate the tree at given idx
 """
-function evaluate(obj::AdaptiveInternalNode{C}, idx::AbstractVector{T}) where {C, T<:AbstractArray{Int}}
+function evaluate(
+    obj::AdaptiveInternalNode{C},
+    idx::AbstractVector{T},
+) where {C,T<:AbstractArray{Int}}
     child_key = idx[obj.pordering.ordering[length(obj.prefix)+1]]
     return evaluate(obj.children[child_key], idx)
 end
 
-function _onlyactiveindices(obj::AbstractAdaptiveTCINode{C}, idx::AbstractVector{T}) where {C, T<:AbstractArray{Int}}
+function _onlyactiveindices(
+    obj::AbstractAdaptiveTCINode{C},
+    idx::AbstractVector{T},
+) where {C,T<:AbstractArray{Int}}
     return idx[maskactiveindices(obj.pordering, length(obj.prefix))]
 end
 
-function evaluate(obj::AdaptiveLeaf{C}, idx::AbstractVector{T}) where {C, T<:AbstractArray{Int}}
+function evaluate(
+    obj::AdaptiveLeaf{C},
+    idx::AbstractVector{T},
+) where {C,T<:AbstractArray{Int}}
     return _evaluate(obj.data, _onlyactiveindices(obj, idx))
 end
 
@@ -198,7 +213,8 @@ function adaptivepatches(
                     if verbosity > 0
                         println("Creating a patch for $(prefix_) ...")
                     end
-                    leaves[prefix_] = createpatch(creator, pordering, [[x] for x in prefix_])
+                    leaves[prefix_] =
+                        createpatch(creator, pordering, [[x] for x in prefix_])
                 end
             end
         end
@@ -221,8 +237,10 @@ end
 ======================================================================#
 TensorTrainState{T} = TensorTrain{T,3} where {T}
 _evaluate(obj::TensorCI2, idx::Vector{Vector{Int}}) = TCI.evaluate(obj, map(first, idx))
-_evaluate(obj::TensorTrainState{T}, idx::AbstractVector{Int}) where {T} = TCI.evaluate(obj, idx)
-_evaluate(obj::TensorTrainState{T}, idx::Vector{Vector{Int}}) where {T} = TCI.evaluate(obj, map(first, idx))
+_evaluate(obj::TensorTrainState{T}, idx::AbstractVector{Int}) where {T} =
+    TCI.evaluate(obj, idx)
+_evaluate(obj::TensorTrainState{T}, idx::Vector{Vector{Int}}) where {T} =
+    TCI.evaluate(obj, map(first, idx))
 
 mutable struct TCI2PatchCreator{T} <: AbstractPatchCreator{T,TensorTrainState{T}}
     f::Any

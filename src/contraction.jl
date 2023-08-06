@@ -1,3 +1,17 @@
+function contract_mpo_mpo(M1::MPO, M2::MPO; alg::String="densitymatrix", kwargs...)::MPO
+    if alg == "densitymatrix"
+        return contract_densitymatrix(M1, M2; kwargs...)
+    elseif alg == "fit"
+        return contract_fit(M1, M2; kwargs...)
+    elseif alg == "tci2"
+        return contract_tci2(M1, M2; kwargs...)
+    else
+        error("Unknown algorithm: $alg")
+    end
+
+end
+
+
 function _iscompatible(p1::Vector{Int}, p2::Vector{Int})::Bool
     for (i, j) in zip(p1, p2)
         if i == 0 || j == 0
@@ -11,7 +25,13 @@ function _iscompatible(p1::Vector{Int}, p2::Vector{Int})::Bool
     return true
 end
 
-function contract(A::MPOTree, B::MPOTree, leftprefix::Vector{Int}, rightprefix::Vector{Int}; maxdim=100)
+function contract(
+    A::MPOTree,
+    B::MPOTree,
+    leftprefix::Vector{Int},
+    rightprefix::Vector{Int};
+    maxdim = 100,
+)
     leftmpo = TTO[]
     leftinner_prefix = Vector{Int}[]
     for n in eachindex(A.mpos)
@@ -35,19 +55,22 @@ function contract(A::MPOTree, B::MPOTree, leftprefix::Vector{Int}, rightprefix::
     for n in eachindex(leftmpo), m in eachindex(rightmpo)
         if _iscompatible(leftinner_prefix[n], rightinner_prefix[m])
             push!(contraction_pairs, (leftmpo[n], rightmpo[m]))
-            push!(prefix_contracted, collect(zip(leftinner_prefix[n], rightinner_prefix[m])))
+            push!(
+                prefix_contracted,
+                collect(zip(leftinner_prefix[n], rightinner_prefix[m])),
+            )
         end
     end
 
     contracted_mpo = TTO[]
     for n in eachindex(contraction_pairs)
-        res = contract(contraction_pairs[n][1], contraction_pairs[n][2]; maxdim=maxdim)
+        res = contract(contraction_pairs[n][1], contraction_pairs[n][2]; maxdim = maxdim)
         push!(contracted_mpo, res)
     end
 
     res = contracted_mpo[1]
-    for n in 2:length(contracted_mpo)
-        res = +(res, contracted_mpo[n]; maxdim=maxdim)
+    for n = 2:length(contracted_mpo)
+        res = +(res, contracted_mpo[n]; maxdim = maxdim)
     end
 
     return res
@@ -63,4 +86,3 @@ mutable struct MPOPatchCreator{T} <: AbstractPatchCreator{T,MPS}
     maxval::Float64
     atol::Float64
 end
-

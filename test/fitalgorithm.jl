@@ -20,7 +20,7 @@ using Random
             M2_[n] = M2[n]
         end
 
-        M12_ref = contract(M1, M2; alg="naive")
+        M12_ref = contract(M1, M2; alg = "naive")
         M12 = FMPOC.contract_fit(M1, M2_)
         t12_ref = Array(reduce(*, M12_ref), sites, setprime(sites, 2))
         t12 = Array(reduce(*, M12), sites, setprime(sites, 2))

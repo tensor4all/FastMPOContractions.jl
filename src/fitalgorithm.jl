@@ -5,16 +5,17 @@ import Base: copy
 """
 Contract M1 and M2, and return the result as an MPO.
 """
-function contract_fit(M1::MPO, M2::MPO; init=nothing,
-    kwargs...)::MPO
+function contract_fit(M1::MPO, M2::MPO; init = nothing, kwargs...)::MPO
     M2_ = MPS([M2[v] for v in eachindex(M2)])
     if init === nothing
         init = M2_
     else
         init = MPS([init[v] for v in eachindex(M2)])
     end
-    M12_ = contract_fit(M1, M2_; init_mps=init, kwargs...)
-    return MPO([M12_[v] for v in eachindex(M1)])
+    M12_ = contract_fit(M1, M2_; init_mps = init, kwargs...)
+    M12 = MPO([M12_[v] for v in eachindex(M1)])
+
+    return M12
 end
 
 #==
@@ -37,10 +38,11 @@ end
 
 # To support MPO-MPO contraction
 # Taken from https://github.com/shinaoka/ITensorTDVP.jl/commit/23e09395cce66215b256aeeaa993fe2c64a0f1c8
-function contract_fit(A::MPO, psi0::MPS; init_mps=psi0, nsweeps=1, kwargs...)::MPS
+function contract_fit(A::MPO, psi0::MPS; init_mps = psi0, nsweeps = 1, kwargs...)::MPS
     n = length(A)
-    n != length(psi0) &&
-        throw(DimensionMismatch("lengths of MPO ($n) and MPS ($(length(psi0))) do not match"))
+    n != length(psi0) && throw(
+        DimensionMismatch("lengths of MPO ($n) and MPS ($(length(psi0))) do not match"),
+    )
     if n == 1
         return MPS([A[1] * psi0[1]])
     end
@@ -56,7 +58,7 @@ function contract_fit(A::MPO, psi0::MPS; init_mps=psi0, nsweeps=1, kwargs...)::M
     init_mps = sim(linkinds, init_mps)
     Ai = siteinds(A)
     init_mpsi = siteinds(init_mps)
-    for j in 1:n
+    for j = 1:n
         ti = nothing
         for i in Ai[j]
             if !hasind(psi0[j], i)
@@ -73,8 +75,15 @@ function contract_fit(A::MPO, psi0::MPS; init_mps=psi0, nsweeps=1, kwargs...)::M
     t = Inf
     reverse_step = false
     PH = ITensorTDVP.ProjMPOApply(psi0, A)
-    psi = ITensorTDVP.tdvp(ITensorTDVP.contractmpo_solver(; kwargs...), PH, t, init_mps;
-        nsweeps, reverse_step, kwargs...)
+    psi = ITensorTDVP.tdvp(
+        ITensorTDVP.contractmpo_solver(; kwargs...),
+        PH,
+        t,
+        init_mps;
+        nsweeps,
+        reverse_step,
+        kwargs...,
+    )
 
     return psi
 end
@@ -185,8 +194,8 @@ function lproj(P::ProjMPOApplySum)
     (P.lpos <= 0) && return nothing
     return P.LR[P.lpos]
 end
-  
-  
+
+
 function rproj(P::ProjMPOApplySum, t::Int)
     (P.rpos >= length(P) + 1) && return nothing
     return P.LR[P.rpos][t]
@@ -204,14 +213,14 @@ function contract(P::ProjMPOApplySum, v::ITensor, t::Int)::ITensor
     itensor_map = Union{ITensor,OneITensor}[lproj(P, t)]
     append!(itensor_map, P.H[t][site_range(P)])
     push!(itensor_map, rproj(P, t))
-  
+
     # Reverse the contraction order of the map if
     # the first tensor is a scalar (for example we
     # are at the left edge of the system)
     if dim(first(itensor_map)) == 1
       reverse!(itensor_map)
     end
-  
+
     # Apply the map
     Hv = v
     for it in itensor_map
