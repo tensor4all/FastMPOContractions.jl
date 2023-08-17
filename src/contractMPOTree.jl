@@ -1,30 +1,3 @@
-function contract_mpo_mpo(M1::MPO, M2::MPO; alg::String = "densitymatrix", kwargs...)::MPO
-    if alg == "densitymatrix"
-        return contract_densitymatrix(M1, M2; kwargs...)
-    elseif alg == "fit"
-        return contract_fit(M1, M2; kwargs...)
-    elseif alg == "tci2"
-        return contract_tci2(M1, M2; kwargs...)
-    else
-        error("Unknown algorithm: $alg")
-    end
-
-end
-
-
-function _iscompatible(p1::Vector{Int}, p2::Vector{Int})::Bool
-    for (i, j) in zip(p1, p2)
-        if i == 0 || j == 0
-            continue
-        end
-        @assert i > 0 && j > 0
-        if i != j
-            return false
-        end
-    end
-    return true
-end
-
 function contract(
     A::MPOTree,
     B::MPOTree,

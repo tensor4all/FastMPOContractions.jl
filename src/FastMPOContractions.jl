@@ -4,11 +4,13 @@ using TensorCrossInterpolation
 import TensorCrossInterpolation:
     TensorCI, CachedFunction, TensorCI2, MultiIndex, TensorTrain
 import TensorCrossInterpolation as TCI
+import TCIAlgorithms as TCIA
 using StaticArrays
 using Distributed
 
 using ITensors
 import ITensors: AbstractMPS, sim!, setleftlim!, setrightlim!, check_hascommoninds
+using TCIITensorConversion
 
 using ITensorTDVP
 
@@ -20,7 +22,6 @@ include("adpativepatching.jl")
 include("densitymatrix.jl")
 include("fitalgorithm.jl")
 include("util.jl")
-#include("mpotree.jl")
-#include("contraction.jl")
+include("contractMPO.jl")
 
 end

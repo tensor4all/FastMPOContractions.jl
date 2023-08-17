@@ -66,3 +66,7 @@ function _log_or_not_dot(y::MPO, A::MPO, x::MPO, loginner::Bool; kwargs...)::Num
         return O[]
     end
 end
+
+function flatten(A::AbstractVector{<:AbstractVector{T}})::Vector{T} where {T}
+    return vcat(A...)
+end
