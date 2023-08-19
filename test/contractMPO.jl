@@ -12,13 +12,13 @@ using ITensors
     sitescontract = Index.(localdims, "contract")
     sitesb = Index.(localdims, "b")
 
-    a = sum(randomMPO(sitesa) for _ in 1:5)
+    a = sum(randomMPO(sitesa) for _ = 1:5)
     replaceind!.(a, sitesa', sitescontract)
 
-    b = sum(randomMPO(sitesb) for _ in 1:5)
+    b = sum(randomMPO(sitesb) for _ = 1:5)
     replaceind!.(b, sitesb', sitescontract)
 
-    c = FastMPOContractions.contract_tci2(a, b; maxbonddim=100)
+    c = FastMPOContractions.contract_tci2(a, b; maxbonddim = 100)
     @test siteinds(c) == collect(zip(sitesa, sitesb))
 
     cref = a * b
@@ -27,7 +27,8 @@ using ITensors
         for j in CartesianIndices(tuple(localdims...))
             aindices = Tuple.(zip(sitesa, Tuple(i)))
             bindices = Tuple.(zip(sitesb, Tuple(j)))
-            @test evaluate_mps(c, aindices, bindices) ≈ evaluate_mps(cref, aindices, bindices)
+            @test evaluate_mps(c, aindices, bindices) ≈
+                  evaluate_mps(cref, aindices, bindices)
         end
     end
 end
@@ -47,6 +48,6 @@ end
     a = _randomMPO(sitesa)
     b = im * _randomMPO(sitesb)
     ab_ref = contract(a, b; alg = "naive")
-    ab = FastMPOContractions.contract_tci2(a, b; tolerance=1e-10)
+    ab = FastMPOContractions.contract_tci2(a, b; tolerance = 1e-10)
     @test ab_ref ≈ ab
 end
