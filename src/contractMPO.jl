@@ -22,14 +22,14 @@ function _mpo_to_tt(
     sitedims = [(prod(dim.(sites1[i])), prod(dim.(sites2[i]))) for i = 1:length(mpo)]
 
     Tfirst = reshape(
-        ITensors.data(permute(mpo[1], sites1[1]..., sites2[1]..., links[1])),
+        Array(mpo[1], sites1[1]..., sites2[1]..., links[1]),
         1,
         sitedims[1]...,
         dim(links[1]),
     )
 
     Tlast = reshape(
-        ITensors.data(permute(mpo[end], links[end], sites1[end]..., sites2[end]...)),
+        Array(mpo[end], links[end], sites1[end]..., sites2[end]...),
         dim(links[end]),
         sitedims[end]...,
         1,
@@ -40,9 +40,7 @@ function _mpo_to_tt(
         push!(
             tensors,
             reshape(
-                ITensors.data(
-                    permute(mpo[i], links[i-1], sites1[i]..., sites2[i]..., links[i]),
-                ),
+                Array(mpo[i], links[i-1], sites1[i]..., sites2[i]..., links[i]),
                 dim(links[i-1]),
                 sitedims[i]...,
                 dim(links[i]),
