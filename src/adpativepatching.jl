@@ -178,48 +178,55 @@ function adaptivepatches(
     maxnleaves = 100,
     verbosity = 0,
 )::Union{AdaptiveLeaf{M},AdaptiveInternalNode{M}} where {T,M}
-    leaves = Dict{Vector{Int},Union{Future,PatchCreatorResult{T,M}}}()
+    leaves = Dict{Vector{Int},Union{Task,PatchCreatorResult{T,M}}}()
 
     # Add root
-    root = createpatch(creator, pordering, Vector{Int}[])
-    while !isready(root)
-        sleep(sleep_time) # Not to run the loop too quickly
-    end
-    leaves[[]] = fetch(root)
+    leaves[[]] = createpatch(creator, pordering, Vector{Int}[])
 
     while true
         sleep(sleep_time) # Not to run the loop too quickly
 
         done = true
+        newtasks = Dict{Vector{Int},Task}()
         for (prefix, leaf) in leaves
-
-            # Fetch leaf if ready
-            if leaf isa Future
-                done = false
-                if isready(leaf)
-                    t1 = time_ns()
-                    leaves[prefix] = fetch(leaf)
-                    t2 = time_ns()
+            # If the task is done, fetch the result, which
+            # will be analyzed in the next loop.
+            if leaf isa Task
+                if istaskdone(leaf)
                     if verbosity > 0
-                        println("Recieved a patch for $(prefix): $(1e-9*(t2-t1)) seconds")
+                        println("Fetching a task for $(prefix) ...")
                     end
+                    leaves[prefix] = fetch(leaf)
                 end
-            elseif !(leaf isa Future) && !leaf.isconverged && length(leaves) < maxnleaves
+                done = false
+                continue
+            end
+
+            @assert leaf isa PatchCreatorResult{T,M}
+
+            if !leaf.isconverged && length(leaves) < maxnleaves
                 done = false
                 delete!(leaves, prefix)
 
                 for ic = 1:creator.localdims[pordering.ordering[length(prefix)+1]]
                     prefix_ = vcat(prefix, ic)
                     if verbosity > 0
-                        println("Creating a patch for $(prefix_) ...")
+                        println("Creating a task for $(prefix_) ...")
                     end
-                    leaves[prefix_] =
-                        createpatch(creator, pordering, [[x] for x in prefix_])
+                    t = @task fetch(@spawnat :any createpatch(creator, pordering, [[x] for x in prefix_]))
+                    newtasks[prefix_] = t
+                    schedule(t)
                 end
             end
         end
+
         if done
+            @assert length(newtasks) == 0
             break
+        end
+
+        for (k, v) in newtasks
+            leaves[k] = v
         end
     end
 
@@ -320,7 +327,7 @@ function createpatch(
     obj::TCI2PatchCreator{T},
     pordering::PatchOrdering,
     prefix::Vector{Vector{Int}},
-)::Future where {T}
+) where {T}
     mask = maskactiveindices(pordering, length(prefix))
     localdims_ = obj.localdims[mask]
     #f_ = x -> obj.f(fullindices(pordering, prefix, x))
@@ -332,7 +339,7 @@ function createpatch(
 
     firstpivot = TCI.optfirstpivot(f_, localdims_, fill(1, length(localdims_)))
 
-    return @spawnat :any _crossinterpolate2(
+    return _crossinterpolate2(
         T,
         f_,
         localdims_,

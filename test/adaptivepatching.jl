@@ -54,7 +54,7 @@ addprocs(max(0, MAX_WORKERS - nworkers()))
             ComplexF64,
             f,
             localdims;
-            maxbonddim = 150,
+            maxbonddim = 100,
             rtol = tol,
             verbosity = 1,
             ntry = 10,
