@@ -56,8 +56,8 @@ pages:
         using Pkg
         Pkg.instantiate()
         using Documenter: doctest
-        using Quantics
-        doctest(Quantics)
+        using FastMPOContractions
+        doctest(FastMPOContractions)
         include("docs/make.jl")'
     - mkdir -p public
     - mv docs/build public/dev
