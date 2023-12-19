@@ -23,7 +23,7 @@ include("densitymatrix.jl")
 include("fitalgorithm.jl")
 include("util.jl")
 include("contractMPO.jl")
-include("contractMPOTree.jl")
+#include("contractMPOTree.jl")
 #include("mpotree.jl")
 
 end
