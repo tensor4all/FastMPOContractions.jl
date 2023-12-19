@@ -102,6 +102,9 @@ function _tt_to_mpo(tt::TCI.TensorTrain{V,4}, sites1, sites2)::MPO where {V}
 end
 
 function _iscompatible(p1::Vector{Int}, p2::Vector{Int})::Bool
+    all(p1 .>= 0) || error("p1 must be non-negative")
+    all(p2 .>= 0) || error("p2 must be non-negative")
+
     for (i, j) in zip(p1, p2)
         if i == 0 || j == 0
             continue
