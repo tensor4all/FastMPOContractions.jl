@@ -83,5 +83,3 @@ mutable struct PartitionedPatchCreator{T} <: AbstractPatchCreator{T,MPS}
     maxval::Float64
     atol::Float64
 end
-
-function evaluate()
