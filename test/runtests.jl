@@ -3,6 +3,9 @@ import TensorCrossInterpolation as TCI
 using TCIITensorConversion
 using Test
 
+include("test_with_aqua.jl")
+include("test_with_jet.jl")
+
 include("_util.jl")
 
 include("adaptivepatching.jl")
