@@ -19,7 +19,7 @@ ITensors = "0.3.42"
 StaticArrays = "1"
 TCIAlgorithms = "0.3"
 TCIITensorConversion = "0.1"
-TensorCrossInterpolation = "0.6, 0.7"
+TensorCrossInterpolation = "0.7"
 julia = "1"
 
 [extras]
