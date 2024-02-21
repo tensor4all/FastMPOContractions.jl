@@ -84,17 +84,17 @@ end
 
 
 function _tt_to_mpo(tt::TCI.TensorTrain{V,4}, sites1, sites2)::MPO where {V}
-    linkdims = [size(tt.T[n], 4) for n = 1:length(tt)-1]
+    linkdims = [size(tt[n], 4) for n = 1:length(tt)-1]
 
     links = [Index(linkdims[l], "Link,l=$l") for l = 1:length(linkdims)]
 
-    Tfirst = ITensor(dropdims(tt.T[1]; dims = 1), sites1[1]..., sites2[1]..., links[1])
+    Tfirst = ITensor(dropdims(tt[1]; dims = 1), sites1[1]..., sites2[1]..., links[1])
     Tlast =
-        ITensor(dropdims(tt.T[end]; dims = 4), links[end], sites1[end]..., sites2[end]...)
+        ITensor(dropdims(tt[end]; dims = 4), links[end], sites1[end]..., sites2[end]...)
 
     tensors = ITensor[Tfirst]
     for n = 2:length(tt)-1
-        push!(tensors, ITensor(tt.T[n], links[n-1], sites1[n]..., sites2[n]..., links[n]))
+        push!(tensors, ITensor(tt[n], links[n-1], sites1[n]..., sites2[n]..., links[n]))
     end
     push!(tensors, Tlast)
 
