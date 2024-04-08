@@ -1,5 +1,5 @@
 # Only temporary, until the performance issune in ITensorNetworks.jl is fixed.
-import ITensors: AbstractProjMPO, makeL!, makeR!, set_nsite!, OneITensor
+import ITensors.ITensorMPS: AbstractProjMPO, makeL!, makeR!, set_nsite!, OneITensor
 import Base: copy
 
 """
@@ -75,7 +75,7 @@ function contract_fit(A::MPO, psi0::MPS; init_mps = psi0, nsweeps = 1, kwargs...
     t = Inf
     reverse_step = false
     PH = ITensorTDVP.ProjMPOApply(psi0, A)
-    psi = ITensorTDVP.tdvp(
+    psi = ITensorTDVP.alternating_update(
         ITensorTDVP.contractmpo_solver(; kwargs...),
         PH,
         t,
