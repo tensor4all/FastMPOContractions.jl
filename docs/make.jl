@@ -13,7 +13,6 @@ makedocs(;
         assets=String[]),
     pages=[
         "Home" => "index.md",
-        "API Reference" => "apireference.md",
     ])
 
 deploydocs(;
