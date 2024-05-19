@@ -6,20 +6,17 @@ DocMeta.setdocmeta!(FastMPOContractions, :DocTestSetup, :(using FastMPOContracti
 makedocs(;
     modules=[FastMPOContractions],
     authors="Hiroshi Shinaoka <h.shinaoka@gmail.com> and contributors",
-    repo="https://gitlab.com/quanticstci/FastMPOContractions.jl/blob/{commit}{path}#{line}",
     sitename="FastMPOContractions.jl",
     format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://gitlab.com/quanticstci/FastMPOContractions.jl",
+        canonical="https://github.com/tensor4all/FastMPOContractions.jl",
         edit_link="main",
-        assets=String[],
-    ),
+        assets=String[]),
     pages=[
         "Home" => "index.md",
-    ],
-)
+        "API Reference" => "apireference.md",
+    ])
 
 deploydocs(;
-    repo="https://gitlab.com/quanticstci/FastMPOContractions.jl",
+    repo="github.com/tensor4all/FastMPOContractions.jl.git",
     devbranch="main",
 )
