@@ -9,8 +9,8 @@ using Random
         Random.seed!(1234)
         nbit = 5
         sites = siteinds("Qubit", nbit)
-        M1 = randomMPO(sites) + randomMPO(sites)
-        M2 = randomMPO(sites) + randomMPO(sites)
+        M1 = random_mpo(sites) + random_mpo(sites)
+        M2 = random_mpo(sites) + random_mpo(sites)
 
         # The function `apply` does not work correctly with the mapping-MPO-to-MPS trick.
         M1 = replaceprime(M1, 1 => 2, 0 => 1)
@@ -37,8 +37,8 @@ using Random
         nbit = 5
         nterm = 2
         sites = siteinds("Qubit", nbit)
-        M1s = [randomMPO(sites) + randomMPO(sites) for _ in 1:nterm]
-        M2s = [randomMPO(sites) + randomMPO(sites) for _ in 1:nterm]
+        M1s = [random_mpo(sites) + random_mpo(sites) for _ in 1:nterm]
+        M2s = [random_mpo(sites) + random_mpo(sites) for _ in 1:nterm]
 
         # The function `apply` does not work correctly with the mapping-MPO-to-MPS trick.
         for t in 1:nterm

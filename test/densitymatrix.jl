@@ -13,8 +13,8 @@ using ITensors
 
     sitesa = collect(collect.(zip(sitesx, sitesy)))
     sitesb = collect(collect.(zip(sitesy, sitesz)))
-    a = _randomMPO(sitesa)
-    b = _randomMPO(sitesb)
+    a = _random_mpo(sitesa)
+    b = _random_mpo(sitesb)
     ab_ref = contract(a, b; alg = "naive")
     ab = FMPOC.contract_densitymatrix(a, b)
     @test ab_ref ≈ ab
@@ -29,8 +29,8 @@ end
 
     sitesa = collect(collect.(zip(sitesx, sitesk, sitesy)))
     sitesb = collect(collect.(zip(sitesy, sitesz)))
-    a = _randomMPO(sitesa)
-    b = _randomMPO(sitesb)
+    a = _random_mpo(sitesa)
+    b = _random_mpo(sitesb)
     ab_ref = contract(a, b; alg = "naive")
     ab = FMPOC.contract_densitymatrix(a, b)
     @test ab_ref ≈ ab
@@ -46,8 +46,8 @@ end
 
     sitesa = collect(collect.(zip(sitesx, sitesk, sitesy)))
     sitesb = collect(collect.(zip(sitesy, sitesz, sitesl)))
-    a = _randomMPO(sitesa)
-    b = _randomMPO(sitesb)
+    a = _random_mpo(sitesa)
+    b = _random_mpo(sitesb)
     ab_ref = contract(a, b; alg = "naive")
     ab = FMPOC.contract_densitymatrix(a, b)
     @test ab_ref ≈ ab
@@ -64,8 +64,8 @@ end
 
     sitesa = collect(collect.(zip(sitesx, sitesk, sitesm, sitesy)))
     sitesb = collect(collect.(zip(sitesy, sitesm, sitesz, sitesl)))
-    a = _randomMPO(sitesa)
-    b = _randomMPO(sitesb)
+    a = _random_mpo(sitesa)
+    b = _random_mpo(sitesb)
     ab_ref = contract(a, b; alg = "naive")
     ab = FMPOC.contract_densitymatrix(a, b)
     @test ab_ref ≈ ab

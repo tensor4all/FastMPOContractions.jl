@@ -72,20 +72,10 @@ function contract_fit(A::MPO, psi0::MPS; init_mps = psi0, nsweeps = 1, kwargs...
         end
     end
 
-    t = Inf
-    reverse_step = false
-    PH = ITensorTDVP.ProjMPOApply(psi0, A)
-    psi = ITensorTDVP.alternating_update(
-        ITensorTDVP.contractmpo_solver(; kwargs...),
-        PH,
-        t,
-        init_mps;
-        nsweeps,
-        reverse_step,
-        kwargs...,
-    )
-
-    return psi
+    reduced_operator = ITensorTDVP.ReducedContractProblem(psi0, A)
+    return ITensorTDVP.alternating_update(
+        reduced_operator, init_mps; updater=ITensorTDVP.contract_operator_state_updater, nsweeps=nsweeps, kwargs...
+      )
 end
 
 

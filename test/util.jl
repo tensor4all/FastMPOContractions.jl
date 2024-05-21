@@ -5,8 +5,8 @@ using ITensors
 @testset "error_contract" begin
     L = 10
     sites = [Index(2, "Qubit,n=$n") for n = 1:L]
-    phi = randomMPO(sites)
-    K = prime(randomMPO(sites) + randomMPO(sites))
+    phi = random_mpo(sites)
+    K = prime(random_mpo(sites) + random_mpo(sites))
 
     # Apply K to phi and check that error_contract is close to 0.
     Kphi = contract(K, phi; alg = "naive", cutoff = 1E-8)
