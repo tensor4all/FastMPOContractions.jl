@@ -1,4 +1,6 @@
-# Taken from ITensors.jl with some modifications
+#===
+Taken from ITensors.jl, which is licensed under the Apache license, with some modifications to support MPO-MPS contraction.
+===#
 function contract_densitymatrix(A::AbstractMPS, ψ::AbstractMPS; kwargs...)
     n = length(A)
     n != length(ψ) &&
