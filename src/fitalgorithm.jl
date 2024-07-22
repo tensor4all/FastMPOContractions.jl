@@ -8,7 +8,7 @@ Contract M1 and M2, and return the result as an MPO.
 function contract_fit(M1::MPO, M2::MPO; init = nothing, kwargs...)::MPO
     M2_ = MPS([M2[v] for v in eachindex(M2)])
     if init === nothing
-        init_MPO::MPO = ITensors.contract(M1, M2; alg="zipup", kwargs...)
+        init_MPO::MPO = ITensors.contract(M1, M2; alg = "zipup", kwargs...)
         init = MPS([init_MPO[v] for v in eachindex(init_MPO)])
     else
         init = MPS([init[v] for v in eachindex(M2)])
@@ -58,6 +58,10 @@ function contract_fit(A::MPO, psi0::MPS; init_mps = psi0, nsweeps = 1, kwargs...
 
     reduced_operator = ITensorTDVP.ReducedContractProblem(psi0, A)
     return ITensorTDVP.alternating_update(
-        reduced_operator, init_mps; updater=ITensorTDVP.contract_operator_state_updater, nsweeps=nsweeps, kwargs...
-      )
+        reduced_operator,
+        init_mps;
+        updater = ITensorTDVP.contract_operator_state_updater,
+        nsweeps = nsweeps,
+        kwargs...,
+    )
 end
