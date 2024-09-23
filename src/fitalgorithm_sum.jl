@@ -198,14 +198,14 @@ function contract_operator_state_updater(
 end
 
 
-function contract_fit(input_state::MPS, init::MPS; coeff::Number=1, kwargs...)::MPS
+function contract_fit(input_state::MPS, init::MPS; coeff::Number = 1, kwargs...)::MPS
     links = ITensors.sim.(linkinds(init))
     init = replaceinds(linkinds, init, links)
     reduced_operator = ReducedFitProblem(input_state)
     return alternating_update(
         reduced_operator,
         init;
-        updater=contract_operator_state_updater,
+        updater = contract_operator_state_updater,
         kwargs...,
     )
 end
@@ -214,7 +214,7 @@ end
 function fit(
     input_states::AbstractVector{MPS},
     init::MPS;
-    coeffs::AbstractVector{<:Number}=ones(Int, length(input_states)),
+    coeffs::AbstractVector{<:Number} = ones(Int, length(input_states)),
     kwargs...,
 )::MPS
     links = ITensors.sim.(linkinds(init))
@@ -223,7 +223,7 @@ function fit(
     return alternating_update(
         reduced_operator,
         init;
-        updater=contract_operator_state_updater,
+        updater = contract_operator_state_updater,
         kwargs...,
     )
 end
@@ -231,11 +231,11 @@ end
 function fit(
     input_states::AbstractVector{MPO},
     init::MPO;
-    coeffs::AbstractVector{<:Number}=ones(Int, length(input_states)),
+    coeffs::AbstractVector{<:Number} = ones(Int, length(input_states)),
     kwargs...,
 )::MPO
     to_mps(Ψ::MPO) = MPS([x for x in Ψ])
 
-    res = fit(to_mps.(input_states), to_mps(init); coeffs=coeffs, kwargs...)
+    res = fit(to_mps.(input_states), to_mps(init); coeffs = coeffs, kwargs...)
     return MPO([x for x in res])
 end
