@@ -3,10 +3,10 @@ module FastMPOContractions
 using StaticArrays
 
 using ITensors
-import ITensors.ITensorMPS:
+import ITensorMPS:
     AbstractMPS, sim!, setleftlim!, setrightlim!, check_hascommoninds
 
-using ITensorTDVP
+using ITensorMPS
 
 include("densitymatrix.jl")
 include("fitalgorithm.jl")

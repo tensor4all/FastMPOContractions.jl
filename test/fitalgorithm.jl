@@ -1,7 +1,7 @@
 using Test
 import FastMPOContractions as FMPOC
 using ITensors
-using ITensorTDVP
+using ITensorMPS
 using Random
 
 @testset "fitalgorithm.jl" begin

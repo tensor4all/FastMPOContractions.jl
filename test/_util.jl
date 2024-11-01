@@ -1,4 +1,5 @@
 using ITensors
+using ITensorMPS
 using Random
 
 function _random_mpo(sites::Vector{Vector{Index{T}}}; linkdims = 1) where {T}

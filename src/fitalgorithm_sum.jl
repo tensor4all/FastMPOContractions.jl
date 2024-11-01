@@ -1,7 +1,7 @@
-using ITensors.ITensorMPS: ITensorMPS, AbstractProjMPO, MPO, MPS
-using ITensors.ITensorMPS: linkinds, replaceinds
+using ITensorMPS: ITensorMPS, AbstractProjMPO, MPO, MPS
+using ITensorMPS: linkinds, replaceinds
 using ITensors: ITensors, OneITensor
-import ITensorTDVP: alternating_update, rproj, lproj
+import ITensorMPS: alternating_update, rproj, lproj
 
 """
 A ReducedFitProblem represents the projection
