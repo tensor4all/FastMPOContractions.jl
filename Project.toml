@@ -1,7 +1,7 @@
 name = "FastMPOContractions"
 uuid = "f6e391d2-8ffa-4d7a-98cd-7e70024481ca"
 authors = ["Hiroshi Shinaoka <h.shinaoka@gmail.com> and contributors"]
-version = "0.2.5"
+version = "0.2.6"
 
 [deps]
 ITensorMPS = "0d1a4710-d33b-49a5-8f18-73bdf49b47e2"
