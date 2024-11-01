@@ -1,5 +1,5 @@
 # Only temporary, until the performance issune in ITensorNetworks.jl is fixed.
-import ITensors.ITensorMPS: AbstractProjMPO, makeL!, makeR!, set_nsite!, OneITensor
+import ITensorMPS: AbstractProjMPO, makeL!, makeR!, set_nsite!, OneITensor
 import Base: copy
 
 """
@@ -56,11 +56,11 @@ function contract_fit(A::MPO, psi0::MPS; init_mps = psi0, nsweeps = 1, kwargs...
         end
     end
 
-    reduced_operator = ITensorTDVP.ReducedContractProblem(psi0, A)
-    return ITensorTDVP.alternating_update(
+    reduced_operator = ITensorMPS.ReducedContractProblem(psi0, A)
+    return ITensorMPS.alternating_update(
         reduced_operator,
         init_mps;
-        updater = ITensorTDVP.contract_operator_state_updater,
+        updater = ITensorMPS.contract_operator_state_updater,
         nsweeps = nsweeps,
         kwargs...,
     )

@@ -1,7 +1,7 @@
 import FastMPOContractions as FMPOC
 using ITensors
-using ITensorTDVP
-using ITensors: random_itensor, Algorithm, random_mps
+using ITensorMPS
+using ITensors: random_itensor, Algorithm
 using Random
 using StableRNGs
 
