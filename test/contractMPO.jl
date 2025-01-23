@@ -2,10 +2,13 @@ using Test
 
 import FastMPOContractions as FMPOC
 using ITensors
+using Random
 
+algs = ["densitymatrix", "fit", "zipup"]
 
+@testset "MPO-MPO contraction (x-y-z)" for alg in algs
+    Random.seed!(1234)
 
-@testset "densitymatrix (x-y-z)" begin
     R = 3
     sitesx = [Index(2, "Qubit,x=$n") for n = 1:R]
     sitesy = [Index(2, "Qubit,y=$n") for n = 1:R]
@@ -16,11 +19,11 @@ using ITensors
     a = _random_mpo(sitesa)
     b = _random_mpo(sitesb)
     ab_ref = contract(a, b; alg = "naive")
-    ab = FMPOC.contract_densitymatrix(a, b)
+    ab = FMPOC.contract_mpo_mpo(a, b; alg=alg)
     @test ab_ref ≈ ab
 end
 
-@testset "densitymatrix (xk-y-z)" begin
+@testset "MPO-MPO contraction (xk-y-z)" for alg in algs
     R = 3
     sitesx = [Index(2, "Qubit,x=$n") for n = 1:R]
     sitesk = [Index(2, "Qubit,k=$n") for n = 1:R]
@@ -32,11 +35,11 @@ end
     a = _random_mpo(sitesa)
     b = _random_mpo(sitesb)
     ab_ref = contract(a, b; alg = "naive")
-    ab = FMPOC.contract_densitymatrix(a, b)
+    ab = FMPOC.contract_mpo_mpo(a, b; alg=alg)
     @test ab_ref ≈ ab
 end
 
-@testset "densitymatrix (xk-y-zl)" begin
+@testset "MPO-MPO contraction (xk-y-zl)" for alg in algs
     R = 3
     sitesx = [Index(2, "Qubit,x=$n") for n = 1:R]
     sitesk = [Index(2, "Qubit,k=$n") for n = 1:R]
@@ -49,11 +52,11 @@ end
     a = _random_mpo(sitesa)
     b = _random_mpo(sitesb)
     ab_ref = contract(a, b; alg = "naive")
-    ab = FMPOC.contract_densitymatrix(a, b)
+    ab = FMPOC.contract_mpo_mpo(a, b; alg=alg)
     @test ab_ref ≈ ab
 end
 
-@testset "densitymatrix (xk-ym-zl)" begin
+@testset "MPO-MPO contraction (xk-ym-zl)" for alg in algs
     R = 3
     sitesx = [Index(2, "Qubit,x=$n") for n = 1:R]
     sitesk = [Index(2, "Qubit,k=$n") for n = 1:R]
@@ -67,6 +70,6 @@ end
     a = _random_mpo(sitesa)
     b = _random_mpo(sitesb)
     ab_ref = contract(a, b; alg = "naive")
-    ab = FMPOC.contract_densitymatrix(a, b)
+    ab = FMPOC.contract_mpo_mpo(a, b; alg=alg)
     @test ab_ref ≈ ab
 end
