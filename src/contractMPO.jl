@@ -1,19 +1,19 @@
-function contract_mpo_mpo(M1::MPO, M2::MPO; alg::String="densitymatrix", kwargs...)::MPO
+function contract_mpo_mpo(M1::MPO, M2::MPO; alg::String="densitymatrix", cutoff::Real=1e-30, kwargs...)::MPO
     if alg == "densitymatrix"
-        return contract_densitymatrix(M1, M2; kwargs...)
+        return contract_densitymatrix(M1, M2; cutoff, kwargs...)
     elseif alg == "fit"
-        return contract_fit(M1, M2; kwargs...)
+        return contract_fit(M1, M2; cutoff, kwargs...)
     elseif alg == "zipup"
-        return ITensors.contract(M1, M2; alg="zipup", kwargs...)
+        return ITensors.contract(M1, M2; alg="zipup", cutoff, kwargs...)
     elseif alg == "naive"
-        return ITensors.contract(M1, M2; alg="naive", kwargs...)
+        return ITensors.contract(M1, M2; alg="naive", cutoff, kwargs...)
     else
         error("Unknown algorithm: $alg")
     end
 
 end
 
-function apply(A::MPO, Ψ::MPO; alg::String="fit", cutoff::Real=1e-25, kwargs...)::MPO
+function apply(A::MPO, Ψ::MPO; alg::String="fit", cutoff::Real=1e-30, kwargs...)::MPO
     if :algorithm ∈ keys(kwargs)
         error("keyword argument :algorithm is not allowed")
     end
@@ -26,7 +26,7 @@ function apply(A::MPO, Ψ::MPO; alg::String="fit", cutoff::Real=1e-25, kwargs...
 end
 
 
-function apply(A::MPO, Ψ::MPS; alg::String="fit", cutoff::Real=1e-25, kwargs...)::MPS
+function apply(A::MPO, Ψ::MPS; alg::String="fit", cutoff::Real=1e-30, kwargs...)::MPS
     if :algorithm ∈ keys(kwargs)
         error("keyword argument :algorithm is not allowed")
     end
