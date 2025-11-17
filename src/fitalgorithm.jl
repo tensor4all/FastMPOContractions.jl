@@ -5,7 +5,7 @@ import Base: copy
 """
 Contract M1 and M2, and return the result as an MPO.
 """
-function contract_fit(M1::MPO, M2::MPO; init = nothing, kwargs...)::MPO
+function contract_fit(M1::MPO, M2::MPO; init = nothing, nsweeps=1, kwargs...)::MPO
     M2_ = MPS([M2[v] for v in eachindex(M2)])
     if init === nothing
         init_MPO::MPO = ITensors.contract(M1, M2; alg = "zipup", kwargs...)
@@ -13,7 +13,7 @@ function contract_fit(M1::MPO, M2::MPO; init = nothing, kwargs...)::MPO
     else
         init = MPS([init[v] for v in eachindex(M2)])
     end
-    M12_ = contract_fit(M1, M2_; init_mps = init, kwargs...)
+    M12_ = contract_fit(M1, M2_; init_mps = init, nsweeps = nsweeps, kwargs...)
     M12 = MPO([M12_[v] for v in eachindex(M1)])
 
     return M12
