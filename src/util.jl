@@ -41,6 +41,8 @@ function _log_or_not_dot(y::MPO, A::MPO, x::MPO, loginner::Bool; kwargs...)::Num
     sim!(linkinds, ydag)
     check_hascommoninds(siteinds, A, y)
     O = ydag[1] * A[1] * x[1]
+
+    log_inner_tot = 0.0
     if loginner
         normO = norm(O)
         log_inner_tot = log(normO)
